@@ -1,67 +1,176 @@
-<div align="center">
-  <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-  
-  # 🗳️ Yuvabe Election Poll
-  
-  **An interactive, real-time election survey application built with React, Vite, and Express.**
-</div>
+# Yuvabe Election Survey
+
+A full-stack election survey application that enables users to participate in polls, submit voting preferences, and analyze results in real time. The system is designed with a modern UI and a lightweight backend to simulate secure and scalable polling.
 
 ---
 
-## 🚀 Features
+## Overview
 
-- **Real-Time Polling**: Securely cast and tally votes dynamically.
-- **Modern UI/UX**: Designed using Tailwind CSS and Lucide React icons.
-- **Interactive Visualizations**: View survey results powered by Recharts.
-- **AI Integration**: Integrated with the Gemini API for advanced analytical insights.
-- **Production Ready**: Fully configured Express/TypeScript backend serving an optimized Vite SPA.
+Yuvabe Election Survey is a web-based platform built to collect and analyze voter insights. It supports real-time vote submission, prevents duplicate voting, and provides a foundation for data-driven election analysis.
 
-## 🛠️ Tech Stack
+---
 
-- **Frontend**: React 19, Vite, Tailwind CSS, Framer Motion
-- **Backend**: Express, TypeScript, tsx
-- **AI & Data**: Google GenAI, Recharts
+## Features
 
-## 💻 Getting Started
+- Real-time vote collection and tracking  
+- One vote per user using email-based validation  
+- Optional input for user reasoning  
+- Dynamic poll configuration  
+- Interactive data visualization  
+- Clean and responsive user interface  
+- Scalable backend architecture  
+
+---
+
+## Tech Stack
+
+### Frontend
+- React 19  
+- Vite  
+- Tailwind CSS  
+- Framer Motion  
+
+### Backend
+- Node.js  
+- Express  
+- TypeScript  
+
+### Data and Visualization
+- Recharts  
+- Google GenAI API  
+
+---
+
+## Project Structure
+
+```
+├── server.ts          # Express backend server
+├── src/               # Frontend source code
+├── dist/              # Production build output
+├── package.json       # Project dependencies and scripts
+├── tsconfig.json      # TypeScript configuration
+├── vite.config.ts     # Vite configuration
+```
+
+---
+
+## Getting Started
 
 ### Prerequisites
-- Node.js (v18 or higher recommended)
-- A Gemini API Key (get one from [Google AI Studio](https://aistudio.google.com/))
+
+- Node.js (v18 or higher)
+- npm or yarn
+
+---
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/prasanna08-coder/Yuvabe_Election_Poll.git
-   cd Yuvabe_Election_Poll
-   ```
+1. Clone the repository
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```bash
+git clone https://github.com/prasanna08-coder/Yuvabe_Election_Poll.git
+cd Yuvabe_Election_Poll
+```
 
-3. **Configure Environment Variables**
-   Rename `.env.example` to `.env` (or create `.env.local`) and add your API Key:
-   ```env
-   GEMINI_API_KEY=your_api_key_here
-   ```
+2. Install dependencies
 
-4. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) to view the app in the browser.
+```bash
+npm install
+```
 
-## ☁️ Deployment
+3. Configure environment variables
 
-This project is configured out-of-the-box for easy deployment to platforms like **Vercel** and **Render**.
+Create a `.env` file in the root directory and add:
 
-**Build Command**: `npm install && npm run build`  
-**Start Command**: `npm start`  
+```env
+GEMINI_API_KEY=your_api_key_here
+```
 
-**Live Demo**: [https://yuvabe-election-poll.vercel.app/](https://yuvabe-election-poll.vercel.app/)
+---
 
-## 📝 License
+### Running the Application
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The application will be available at:
+
+[http://localhost:3000](http://localhost:3000)
+
+---
+
+## API Endpoints
+
+### Get Poll Data
+```http
+GET /api/poll
+```
+
+### Update Poll Options
+```http
+POST /api/poll
+```
+
+### Get All Votes
+```http
+GET /api/votes
+```
+
+### Submit Vote
+```http
+POST /api/votes
+```
+
+---
+
+## Key Implementation Details
+
+- Votes are stored in-memory for demonstration purposes
+- Duplicate voting is prevented using email-based validation
+- Backend is built using Express with TypeScript support
+- Frontend is served using Vite in development and static build in production
+
+---
+
+## Build and Deployment
+
+Build the project:
+
+```bash
+npm run build
+```
+
+Run in production:
+
+```bash
+npm start
+```
+
+The project can be deployed on platforms such as Vercel or Render.
+
+---
+
+## Limitations
+
+- Uses in-memory storage (not suitable for production)
+- No authentication or authorization for admin routes
+- Limited scalability without database integration
+
+---
+
+## Future Improvements
+
+- Integrate database (MongoDB or PostgreSQL)
+- Add authentication and role-based access
+- Enhance analytics dashboard
+- Implement secure voting mechanisms
+- Deploy with CI/CD pipeline
+
+---
+
+## License
 
 This project is open-source and available under the MIT License.
