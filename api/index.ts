@@ -42,7 +42,7 @@ app.post("/api/poll", asyncHandler(async (req: any, res: any) => {
       districts[district] = { candidates: [] };
   }
   districts[district].candidates = options || [];
-  votes = votes.filter(v => v.district !== district);
+  // Do NOT clear votes when updating candidates - preserve all district data
   res.json({ message: "Updated", districts });
 }));
 

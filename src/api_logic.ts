@@ -53,7 +53,7 @@ export function setupRoutes(app: express.Express) {
     if (!district || !districts[district]) return res.status(400).json({ error: "Valid district is required" });
     if (!Array.isArray(options) || options.length === 0) return res.status(400).json({ error: "Options must be a non-empty array" });
     districts[district].candidates = options;
-    votes = votes.filter(v => v.district !== district);
+    // Do NOT clear votes when updating candidates - preserve all district data
     res.json({ message: "Candidates updated successfully for " + district, districts });
   });
 
