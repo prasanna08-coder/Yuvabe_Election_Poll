@@ -1,4 +1,5 @@
 # Yuvabe Election Poll Platform
+A multi-mode polling and election analytics platform designed for real-world use cases and scalable deployment.
 
 ## Live Demo (Production Deployment)
 
@@ -121,36 +122,40 @@ Each module maintains independent state:
 ---
 
 ## Project Structure
-/src
-├── App.tsx
-├── GeneralPolling.tsx
-├── CandidatePoll.tsx
-├── StateElection.tsx
-├── api_logic.ts
 
-/server.ts
-/index.html
-/package.json
+```
+src/
+  App.tsx
+  GeneralPolling.tsx
+  CandidatePoll.tsx
+  StateElection.tsx
+  api_logic.ts
 
-
----
+server.ts
+index.html
+package.json
+```
 
 ## Getting Started
 
 ### Install Dependencies
 
+```
 npm install
+```
 
 ### Run Development Server
 
+```
 npm run dev
+```
 
 ### Build for Production
+
+```
 npm run build
 npm run preview
-
-
----
+```
 
 ## Deployment
 
