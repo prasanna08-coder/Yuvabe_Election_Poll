@@ -69,14 +69,51 @@ export default function StateElection() {
     return () => clearTimeout(timer);
   }, []);
 
+  // --- localStorage cache helpers ---
+  const CACHE_KEY_DISTRICTS = "tn_election_districts_cache";
+  const CACHE_KEY_VOTES = "tn_election_votes_cache";
+
+  const saveToCache = (key: string, data: any) => {
+    try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
+  };
+  const loadFromCache = (key: string) => {
+    try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : null; } catch { return null; }
+  };
+
   const fetchPoll = useCallback(() => {
     fetch("/api/poll")
       .then((res) => res.json())
-      .then((data) => {
-        setDistrictsData(data);
-        if (data[adminDistrict] && data[adminDistrict].candidates) {
-          setNewOptions(data[adminDistrict].candidates);
+      .then((serverData) => {
+        const cached = loadFromCache(CACHE_KEY_DISTRICTS) || {};
+        let merged = { ...serverData };
+
+        // If server lost data (cold start), restore from localStorage
+        for (const district of Object.keys(cached)) {
+          if (
+            cached[district]?.candidates?.length > 0 &&
+            (!merged[district] || merged[district]?.candidates?.length === 0)
+          ) {
+            merged[district] = { ...merged[district], candidates: cached[district].candidates };
+            // Re-post to server to re-warm it
+            fetch("/api/poll", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ district, options: cached[district].candidates }),
+            }).catch(() => {});
+          }
         }
+
+        setDistrictsData(merged);
+        saveToCache(CACHE_KEY_DISTRICTS, merged);
+
+        if (merged[adminDistrict] && merged[adminDistrict].candidates) {
+          setNewOptions(merged[adminDistrict].candidates);
+        }
+      })
+      .catch(() => {
+        // If server is completely down, use cache
+        const cached = loadFromCache(CACHE_KEY_DISTRICTS);
+        if (cached) setDistrictsData(cached);
       });
   }, [adminDistrict]);
 
@@ -88,9 +125,17 @@ export default function StateElection() {
     try {
       const res = await fetch("/api/votes");
       const data = await res.json();
-      setVotes(data);
+      if (Array.isArray(data) && data.length > 0) {
+        setVotes(data);
+        saveToCache(CACHE_KEY_VOTES, data);
+      } else {
+        // Server returned empty (cold start) - use cached votes
+        const cached = loadFromCache(CACHE_KEY_VOTES);
+        if (cached && Array.isArray(cached)) setVotes(cached);
+      }
     } catch (err) {
-      console.error("Failed to fetch votes", err);
+      const cached = loadFromCache(CACHE_KEY_VOTES);
+      if (cached && Array.isArray(cached)) setVotes(cached);
     }
   }, []);
 
@@ -99,6 +144,40 @@ export default function StateElection() {
     const interval = setInterval(fetchVotes, 5000);
     return () => clearInterval(interval);
   }, [fetchVotes]);
+
+  const updatePollOptions = async () => {
+    const filteredOptions = newOptions.filter(opt => opt.trim() !== "");
+    if (filteredOptions.length < 2) {
+      setStatus({ type: "error", message: "At least 2 candidates are required." });
+      return;
+    }
+
+    // Always save to localStorage first (guaranteed persistence)
+    const cached = loadFromCache(CACHE_KEY_DISTRICTS) || {};
+    cached[adminDistrict] = { candidates: filteredOptions };
+    saveToCache(CACHE_KEY_DISTRICTS, cached);
+
+    try {
+      const res = await fetch("/api/poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ district: adminDistrict, options: filteredOptions }),
+      });
+
+      if (res.ok) {
+        setStatus({ type: "success", message: `Candidates updated successfully for ${adminDistrict}!` });
+        fetchPoll();
+        fetchVotes();
+      } else {
+        // Server failed but localStorage has the data
+        setStatus({ type: "success", message: `Candidates saved locally for ${adminDistrict}. Server sync pending.` });
+        setDistrictsData(prev => ({ ...prev, [adminDistrict]: { candidates: filteredOptions } }));
+      }
+    } catch (err) {
+      setStatus({ type: "success", message: `Candidates saved locally for ${adminDistrict}. Server sync pending.` });
+      setDistrictsData(prev => ({ ...prev, [adminDistrict]: { candidates: filteredOptions } }));
+    }
+  };
 
   const districtVotes = useMemo(() => {
     const target = view === "admin" ? adminDistrict : selectedDistrict;
@@ -134,8 +213,13 @@ export default function StateElection() {
       const data = await res.json();
 
       if (res.ok) {
-        const voteReceipt = { email, choice: selectedOption, timestamp: Date.now(), district: selectedDistrict };
-        setLastVote(voteReceipt);
+        // Save vote to localStorage cache too
+        const cachedVotes = loadFromCache(CACHE_KEY_VOTES) || [];
+        const newVote = { email, choice: selectedOption, reason, timestamp: Date.now(), district: selectedDistrict };
+        cachedVotes.push(newVote);
+        saveToCache(CACHE_KEY_VOTES, cachedVotes);
+
+        setLastVote({ email, choice: selectedOption, timestamp: Date.now(), district: selectedDistrict });
         setView("receipt");
         setEmail("");
         setReason("");
@@ -176,32 +260,6 @@ export default function StateElection() {
       setStatus(null);
     } else {
       setStatus({ type: "error", message: "Invalid admin password." });
-    }
-  };
-
-  const updatePollOptions = async () => {
-    const filteredOptions = newOptions.filter(opt => opt.trim() !== "");
-    if (filteredOptions.length < 2) {
-      setStatus({ type: "error", message: "At least 2 candidates are required." });
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/poll", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ district: adminDistrict, options: filteredOptions }),
-      });
-
-      if (res.ok) {
-        setStatus({ type: "success", message: `Candidates updated successfully for ${adminDistrict}!` });
-        fetchPoll();
-        fetchVotes();
-      } else {
-        setStatus({ type: "error", message: "Failed to update candidates." });
-      }
-    } catch (err) {
-      setStatus({ type: "error", message: "Network error." });
     }
   };
 
