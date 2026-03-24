@@ -95,12 +95,10 @@ export default function StateElection() {
   }, []);
 
   useEffect(() => {
-    if (isAdminAuthenticated) {
-      fetchVotes();
-      const interval = setInterval(fetchVotes, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [isAdminAuthenticated, fetchVotes]);
+    fetchVotes();
+    const interval = setInterval(fetchVotes, 5000);
+    return () => clearInterval(interval);
+  }, [fetchVotes]);
 
   const districtVotes = useMemo(() => {
     const target = view === "admin" ? adminDistrict : selectedDistrict;
