@@ -1,176 +1,123 @@
-# Yuvabe Election Survey
-
-A full-stack election survey application that enables users to participate in polls, submit voting preferences, and analyze results in real time. The system is designed with a modern UI and a lightweight backend to simulate secure and scalable polling.
-
----
+# Yuvabe Election Poll Platform
 
 ## Overview
 
-Yuvabe Election Survey is a web-based platform built to collect and analyze voter insights. It supports real-time vote submission, prevents duplicate voting, and provides a foundation for data-driven election analysis.
+Yuvabe Election Poll Platform is a multi-level polling and election simulation system that supports three distinct voting modes within a single application:
+
+- General Polling (survey-based voting)
+- Candidate Poll (candidate-based voting)
+- State Election Dashboard (district-level election simulation)
+
+The platform demonstrates real-world system design by combining structured data handling, modular architecture, and analytics-driven insights.
 
 ---
 
-## Features
+## Live Demo
 
-- Real-time vote collection and tracking  
-- One vote per user using email-based validation  
-- Optional input for user reasoning  
-- Dynamic poll configuration  
-- Interactive data visualization  
-- Clean and responsive user interface  
-- Scalable backend architecture  
+Add your deployed link here
 
 ---
 
-## Tech Stack
+## Screenshots
+
+### General Polling
+![General Polling](./assets/general.png)
+
+### Candidate Poll
+![Candidate Poll](./assets/candidate.png)
+
+### State Election Dashboard
+![State Election](./assets/state.png)
+
+### Insights Dashboard
+![Insights](./assets/insights.png)
+
+---
+
+## Demo Flow
+
+### Step 1: General Polling
+- Create a poll question
+- Add multiple options
+- Users can vote
+- Results update dynamically
+
+### Step 2: Candidate Poll
+- Add candidates dynamically
+- Users vote for candidates
+- Winner is determined by vote count
+
+### Step 3: State Election
+- Select a district (e.g., Chennai, Ariyalur)
+- Add candidates mapped to parties (DMK, ADMK, etc.)
+- Vote within each district
+
+### Step 4: District Insights
+- Vote distribution
+- Market share
+- Margin of victory
+
+### Step 5: State-Level Result
+- District winners are calculated
+- Party-wise wins are aggregated
+- Final state winner is determined based on maximum district wins
+
+---
+
+## Key Features
+
+- Multi-mode architecture (General, Candidate, State)
+- Independent data handling for each module
+- District-level data isolation
+- Real-time vote updates
+- State-level winner computation
+- Insight generation:
+  - Vote distribution
+  - Market share
+  - Margin of victory
+  - Regional trends
+
+---
+
+## Technical Architecture
 
 ### Frontend
-- React 19  
-- Vite  
-- Tailwind CSS  
-- Framer Motion  
+- React with TypeScript
+- Vite build system
+- Tailwind CSS for styling
+- Modular components:
+  - GeneralPolling.tsx
+  - CandidatePoll.tsx
+  - StateElection.tsx
 
 ### Backend
-- Node.js  
-- Express  
-- TypeScript  
+- Node.js with Express
+- REST API design
+- Separate endpoints for each module
 
-### Data and Visualization
-- Recharts  
-- Google GenAI API  
+### Deployment
+- Configured for Vercel deployment
+- Static frontend build with API routing
+
+---
+
+## Core Logic
+
+### Data Isolation
+Each module operates independently:
+- General polling → question-based data
+- Candidate polling → candidate vote counts
+- State election → district-wise structured data
+
+### District Handling
+- Each district stores votes independently
+- Switching districts does not overwrite previous data
+
+### State Winner Logic
+- Each district produces a winner
+- Party-wise district wins are counted
+- Final state winner is the party with the highest district wins
 
 ---
 
 ## Project Structure
-
-```
-├── server.ts          # Express backend server
-├── src/               # Frontend source code
-├── dist/              # Production build output
-├── package.json       # Project dependencies and scripts
-├── tsconfig.json      # TypeScript configuration
-├── vite.config.ts     # Vite configuration
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- npm or yarn
-
----
-
-### Installation
-
-1. Clone the repository
-
-```bash
-git clone https://github.com/prasanna08-coder/Yuvabe_Election_Poll.git
-cd Yuvabe_Election_Poll
-```
-
-2. Install dependencies
-
-```bash
-npm install
-```
-
-3. Configure environment variables
-
-Create a `.env` file in the root directory and add:
-
-```env
-GEMINI_API_KEY=your_api_key_here
-```
-
----
-
-### Running the Application
-
-Start the development server:
-
-```bash
-npm run dev
-```
-
-The application will be available at:
-
-[http://localhost:3000](http://localhost:3000)
-
----
-
-## API Endpoints
-
-### Get Poll Data
-```http
-GET /api/poll
-```
-
-### Update Poll Options
-```http
-POST /api/poll
-```
-
-### Get All Votes
-```http
-GET /api/votes
-```
-
-### Submit Vote
-```http
-POST /api/votes
-```
-
----
-
-## Key Implementation Details
-
-- Votes are stored in-memory for demonstration purposes
-- Duplicate voting is prevented using email-based validation
-- Backend is built using Express with TypeScript support
-- Frontend is served using Vite in development and static build in production
-
----
-
-## Build and Deployment
-
-Build the project:
-
-```bash
-npm run build
-```
-
-Run in production:
-
-```bash
-npm start
-```
-
-The project can be deployed on platforms such as Vercel or Render.
-
----
-
-## Limitations
-
-- Uses in-memory storage (not suitable for production)
-- No authentication or authorization for admin routes
-- Limited scalability without database integration
-
----
-
-## Future Improvements
-
-- Integrate database (MongoDB or PostgreSQL)
-- Add authentication and role-based access
-- Enhance analytics dashboard
-- Implement secure voting mechanisms
-- Deploy with CI/CD pipeline
-
----
-
-## License
-
-This project is open-source and available under the MIT License.
