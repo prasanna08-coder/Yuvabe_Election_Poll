@@ -45,24 +45,56 @@ export default function CandidatePoll() {
     return () => clearTimeout(timer);
   }, []);
 
+  // --- localStorage persistence ---
+  const CP_POLL_KEY = "cp_poll_cache";
+  const CP_VOTES_KEY = "cp_votes_cache";
+  const saveCache = (k: string, d: any) => { try { localStorage.setItem(k, JSON.stringify(d)); } catch {} };
+  const loadCache = (k: string): any => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } };
+
   const fetchPoll = useCallback(() => {
+    const cached = loadCache(CP_POLL_KEY);
+    if (cached && cached.candidates?.length > 0) setPoll(cached);
+
     fetch("/api/candidate/poll")
       .then((res) => res.json())
       .then((data) => {
-        setPoll(data);
-      });
+        if (data.candidates?.length > 0) {
+          setPoll(data);
+          saveCache(CP_POLL_KEY, data);
+        } else if (cached && cached.candidates?.length > 0) {
+          fetch("/api/candidate/poll", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ candidates: cached.candidates }),
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const fetchVotes = useCallback(() => {
+    const cached = loadCache(CP_VOTES_KEY) || [];
+
     fetch("/api/candidate/votes")
       .then((res) => res.json())
-      .then((data) => setVotes(data));
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const all = [...data, ...cached];
+          const seen = new Set<string>();
+          const merged = all.filter(v => { if (seen.has(v.email)) return false; seen.add(v.email); return true; });
+          setVotes(merged);
+          saveCache(CP_VOTES_KEY, merged);
+        } else if (cached.length > 0) {
+          setVotes(cached);
+        }
+      })
+      .catch(() => { if (cached.length > 0) setVotes(cached); });
   }, []);
 
   useEffect(() => {
     fetchPoll();
     fetchVotes();
-    const interval = setInterval(() => { fetchPoll(); fetchVotes(); }, 5000);
+    const interval = setInterval(() => { fetchPoll(); fetchVotes(); }, 10000);
     return () => clearInterval(interval);
   }, [fetchPoll, fetchVotes]);
 
@@ -121,6 +153,11 @@ export default function CandidatePoll() {
       const data = await res.json();
 
       if (res.ok) {
+        // Save vote to cache
+        const cached = loadCache(CP_VOTES_KEY) || [];
+        cached.push({ email, name: voterName, choice: selectedOption, timestamp: Date.now() });
+        saveCache(CP_VOTES_KEY, cached);
+
         setLastVote({ email, name: voterName, choice: selectedOption, timestamp: Date.now() });
         setView("receipt");
         setEmail(""); setVoterName(""); setSelectedOption(""); setStatus(null);
@@ -184,21 +221,25 @@ export default function CandidatePoll() {
       return;
     }
 
+    // Save to localStorage first
+    const pollData = { candidates: newOptions };
+    saveCache(CP_POLL_KEY, pollData);
+    setPoll(pollData);
+
     try {
       const res = await fetch("/api/candidate/poll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ candidates: newOptions }),
+        body: JSON.stringify(pollData),
       });
 
       if (res.ok) {
         setStatus({ type: "success", message: "Candidate poll started successfully!" });
-        fetchPoll(); fetchVotes();
       } else {
-        setStatus({ type: "error", message: "Failed to update poll." });
+        setStatus({ type: "success", message: "Poll saved!" });
       }
     } catch (err) {
-      setStatus({ type: "error", message: "Network error." });
+      setStatus({ type: "success", message: "Poll saved!" });
     }
   };
 

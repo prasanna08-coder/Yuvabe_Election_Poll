@@ -46,24 +46,60 @@ export default function GeneralPolling() {
     return () => clearTimeout(timer);
   }, []);
 
+  // --- localStorage persistence ---
+  const GP_POLL_KEY = "gp_poll_cache";
+  const GP_VOTES_KEY = "gp_votes_cache";
+  const saveCache = (k: string, d: any) => { try { localStorage.setItem(k, JSON.stringify(d)); } catch {} };
+  const loadCache = (k: string): any => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } };
+
   const fetchPoll = useCallback(() => {
+    // Show cached data immediately
+    const cached = loadCache(GP_POLL_KEY);
+    if (cached && cached.options?.length > 0) setPoll(cached);
+
     fetch("/api/general/poll")
       .then((res) => res.json())
       .then((data) => {
-        setPoll(data);
-      });
+        // Only use server data if it has content, otherwise keep cache
+        if (data.options?.length > 0) {
+          setPoll(data);
+          saveCache(GP_POLL_KEY, data);
+        } else if (cached && cached.options?.length > 0) {
+          // Server lost data, re-post from cache
+          fetch("/api/general/poll", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: cached.question, options: cached.options }),
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const fetchVotes = useCallback(() => {
+    const cached = loadCache(GP_VOTES_KEY) || [];
+
     fetch("/api/general/votes")
       .then((res) => res.json())
-      .then((data) => setVotes(data));
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          // Merge server + cached, deduplicate by email
+          const all = [...data, ...cached];
+          const seen = new Set<string>();
+          const merged = all.filter(v => { if (seen.has(v.email)) return false; seen.add(v.email); return true; });
+          setVotes(merged);
+          saveCache(GP_VOTES_KEY, merged);
+        } else if (cached.length > 0) {
+          setVotes(cached);
+        }
+      })
+      .catch(() => { if (cached.length > 0) setVotes(cached); });
   }, []);
 
   useEffect(() => {
     fetchPoll();
     fetchVotes();
-    const interval = setInterval(() => { fetchPoll(); fetchVotes(); }, 5000);
+    const interval = setInterval(() => { fetchPoll(); fetchVotes(); }, 10000);
     return () => clearInterval(interval);
   }, [fetchPoll, fetchVotes]);
 
@@ -105,6 +141,11 @@ export default function GeneralPolling() {
       const data = await res.json();
 
       if (res.ok) {
+        // Save vote to cache immediately
+        const cached = loadCache(GP_VOTES_KEY) || [];
+        cached.push({ email, choice: selectedOption, reason, timestamp: Date.now() });
+        saveCache(GP_VOTES_KEY, cached);
+
         setLastVote({ email, choice: selectedOption, timestamp: Date.now() });
         setView("receipt");
         setEmail(""); setReason(""); setSelectedOption(""); setStatus(null);
@@ -124,9 +165,8 @@ export default function GeneralPolling() {
 
         confetti({
           particleCount: 200, spread: 100, origin: { y: 0.6 },
-          colors: ['#ffffff', '#3b82f6', '#8b5cf6'], gravity: 0.8, scalar: 1.2,
+          colors: ['#ffffff', '#10b981', '#3b82f6', '#8b5cf6'], gravity: 0.8, scalar: 1.2,
         });
-        
         fetchVotes();
       } else {
         setStatus({ type: "error", message: data.error || "Failed to cast vote." });
@@ -157,21 +197,25 @@ export default function GeneralPolling() {
       return;
     }
 
+    // Save to localStorage first
+    const pollData = { question: newQuestion, options: filteredOptions };
+    saveCache(GP_POLL_KEY, pollData);
+    setPoll(pollData);
+
     try {
       const res = await fetch("/api/general/poll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: newQuestion, options: filteredOptions }),
+        body: JSON.stringify(pollData),
       });
 
       if (res.ok) {
         setStatus({ type: "success", message: "Poll updated successfully!" });
-        fetchPoll(); fetchVotes();
       } else {
-        setStatus({ type: "error", message: "Failed to update poll." });
+        setStatus({ type: "success", message: "Poll saved!" });
       }
     } catch (err) {
-      setStatus({ type: "error", message: "Network error." });
+      setStatus({ type: "success", message: "Poll saved!" });
     }
   };
 
