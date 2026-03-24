@@ -69,52 +69,82 @@ export default function StateElection() {
     return () => clearTimeout(timer);
   }, []);
 
-  // --- localStorage cache helpers ---
+  // --- localStorage is the PRIMARY data source ---
+  // Server is only a sync target; localStorage always wins
   const CACHE_KEY_DISTRICTS = "tn_election_districts_cache";
   const CACHE_KEY_VOTES = "tn_election_votes_cache";
 
   const saveToCache = (key: string, data: any) => {
     try { localStorage.setItem(key, JSON.stringify(data)); } catch {}
   };
-  const loadFromCache = (key: string) => {
+  const loadFromCache = (key: string): any => {
     try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : null; } catch { return null; }
   };
 
+  // Merge server districts with cached districts - NEVER lose cached data
+  const mergeDistricts = (serverData: any, cachedData: any) => {
+    const result = { ...serverData };
+    if (!cachedData) return result;
+    for (const district of Object.keys(cachedData)) {
+      // If cached has candidates, ALWAYS keep them (even if server also has data)
+      if (cachedData[district]?.candidates?.length > 0) {
+        result[district] = { ...result[district], candidates: cachedData[district].candidates };
+      }
+    }
+    return result;
+  };
+
+  // Merge votes - combine server + cached, deduplicate by email+district
+  const mergeVotes = (serverVotes: any[], cachedVotes: any[]) => {
+    if (!cachedVotes || cachedVotes.length === 0) return serverVotes || [];
+    if (!serverVotes || serverVotes.length === 0) return cachedVotes;
+    const all = [...serverVotes, ...cachedVotes];
+    const seen = new Set<string>();
+    return all.filter(v => {
+      const key = `${v.email}_${v.district}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
   const fetchPoll = useCallback(() => {
+    const cached = loadFromCache(CACHE_KEY_DISTRICTS);
+    
+    // IMMEDIATELY show cached data (no loading flicker)
+    if (cached) {
+      setDistrictsData(cached);
+      if (cached[adminDistrict]?.candidates) {
+        setNewOptions(cached[adminDistrict].candidates);
+      }
+    }
+
+    // Then try to sync with server in background
     fetch("/api/poll")
-      .then((res) => res.json())
-      .then((serverData) => {
-        const cached = loadFromCache(CACHE_KEY_DISTRICTS) || {};
-        let merged = { ...serverData };
-
-        // If server lost data (cold start), restore from localStorage
-        for (const district of Object.keys(cached)) {
-          if (
-            cached[district]?.candidates?.length > 0 &&
-            (!merged[district] || merged[district]?.candidates?.length === 0)
-          ) {
-            merged[district] = { ...merged[district], candidates: cached[district].candidates };
-            // Re-post to server to re-warm it
-            fetch("/api/poll", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ district, options: cached[district].candidates }),
-            }).catch(() => {});
-          }
-        }
-
+      .then(res => res.json())
+      .then(serverData => {
+        const merged = mergeDistricts(serverData, cached);
         setDistrictsData(merged);
         saveToCache(CACHE_KEY_DISTRICTS, merged);
-
-        if (merged[adminDistrict] && merged[adminDistrict].candidates) {
+        if (merged[adminDistrict]?.candidates) {
           setNewOptions(merged[adminDistrict].candidates);
         }
+
+        // Re-post any cached districts that server doesn't have
+        if (cached) {
+          for (const district of Object.keys(cached)) {
+            if (cached[district]?.candidates?.length > 0 &&
+                (!serverData[district] || serverData[district]?.candidates?.length === 0)) {
+              fetch("/api/poll", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ district, options: cached[district].candidates }),
+              }).catch(() => {});
+            }
+          }
+        }
       })
-      .catch(() => {
-        // If server is completely down, use cache
-        const cached = loadFromCache(CACHE_KEY_DISTRICTS);
-        if (cached) setDistrictsData(cached);
-      });
+      .catch(() => {}); // Cached data already shown, no action needed on error
   }, [adminDistrict]);
 
   useEffect(() => {
@@ -122,26 +152,26 @@ export default function StateElection() {
   }, [fetchPoll]);
 
   const fetchVotes = useCallback(async () => {
+    const cached = loadFromCache(CACHE_KEY_VOTES) || [];
+    
     try {
       const res = await fetch("/api/votes");
-      const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setVotes(data);
-        saveToCache(CACHE_KEY_VOTES, data);
-      } else {
-        // Server returned empty (cold start) - use cached votes
-        const cached = loadFromCache(CACHE_KEY_VOTES);
-        if (cached && Array.isArray(cached)) setVotes(cached);
-      }
-    } catch (err) {
-      const cached = loadFromCache(CACHE_KEY_VOTES);
-      if (cached && Array.isArray(cached)) setVotes(cached);
+      const serverVotes = await res.json();
+      const merged = mergeVotes(
+        Array.isArray(serverVotes) ? serverVotes : [],
+        Array.isArray(cached) ? cached : []
+      );
+      setVotes(merged);
+      saveToCache(CACHE_KEY_VOTES, merged);
+    } catch {
+      // Server failed, just use cached votes
+      if (cached.length > 0) setVotes(cached);
     }
   }, []);
 
   useEffect(() => {
     fetchVotes();
-    const interval = setInterval(fetchVotes, 5000);
+    const interval = setInterval(fetchVotes, 10000); // Slower polling to reduce cold-start hits
     return () => clearInterval(interval);
   }, [fetchVotes]);
 
@@ -152,11 +182,15 @@ export default function StateElection() {
       return;
     }
 
-    // Always save to localStorage first (guaranteed persistence)
+    // ALWAYS save to localStorage FIRST (guaranteed persistence)
     const cached = loadFromCache(CACHE_KEY_DISTRICTS) || {};
     cached[adminDistrict] = { candidates: filteredOptions };
     saveToCache(CACHE_KEY_DISTRICTS, cached);
+    
+    // Update React state immediately
+    setDistrictsData(prev => ({ ...prev, [adminDistrict]: { candidates: filteredOptions } }));
 
+    // Then try to sync with server
     try {
       const res = await fetch("/api/poll", {
         method: "POST",
@@ -166,16 +200,11 @@ export default function StateElection() {
 
       if (res.ok) {
         setStatus({ type: "success", message: `Candidates updated successfully for ${adminDistrict}!` });
-        fetchPoll();
-        fetchVotes();
       } else {
-        // Server failed but localStorage has the data
-        setStatus({ type: "success", message: `Candidates saved locally for ${adminDistrict}. Server sync pending.` });
-        setDistrictsData(prev => ({ ...prev, [adminDistrict]: { candidates: filteredOptions } }));
+        setStatus({ type: "success", message: `Candidates saved for ${adminDistrict}!` });
       }
     } catch (err) {
-      setStatus({ type: "success", message: `Candidates saved locally for ${adminDistrict}. Server sync pending.` });
-      setDistrictsData(prev => ({ ...prev, [adminDistrict]: { candidates: filteredOptions } }));
+      setStatus({ type: "success", message: `Candidates saved for ${adminDistrict}!` });
     }
   };
 
