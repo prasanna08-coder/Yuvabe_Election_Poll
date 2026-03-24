@@ -332,10 +332,19 @@ export default function CandidatePoll() {
             <button onClick={() => { setView("voter"); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
               Vote
             </button>
-            <button onClick={() => { setView("insights"); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
-              Results
-            </button>
-            {isAdminAuthenticated && view === "admin" ? (
+            
+            {isAdminAuthenticated && (
+              <>
+                <button onClick={() => { setView("insights"); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
+                  Results
+                </button>
+                <button onClick={() => { setView("admin"); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
+                  Setup
+                </button>
+              </>
+            )}
+
+            {isAdminAuthenticated ? (
               <button onClick={() => { setView("voter"); setIsAdminAuthenticated(false); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors flex items-center gap-2">
                 <LogOut size={12} /> Sign out
               </button>
@@ -436,7 +445,7 @@ export default function CandidatePoll() {
             </motion.div>
           )}
 
-          {view === "insights" && (
+          {view === "insights" && isAdminAuthenticated && (
             <motion.div key="insights" initial={{opacity:0}} animate={{opacity:1}} className="w-full max-w-5xl space-y-12">
               <h1 className="text-5xl font-black tracking-tighter mb-12">Election Results</h1>
 

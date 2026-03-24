@@ -28,7 +28,7 @@ export default function GeneralPolling() {
   const [view, setView] = useState<ViewState>("voter");
   const [poll, setPoll] = useState<PollConfig>({ question: "Loading...", options: [] });
   const [votes, setVotes] = useState<GeneralVote[]>([]);
-  
+
   const [email, setEmail] = useState("");
   const [reason, setReason] = useState("");
   const [selectedOption, setSelectedOption] = useState("");
@@ -36,7 +36,7 @@ export default function GeneralPolling() {
   const [adminPassword, setAdminPassword] = useState("");
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [lastVote, setLastVote] = useState<GeneralVote | null>(null);
-  
+
   const [newQuestion, setNewQuestion] = useState("");
   const [newOptions, setNewOptions] = useState<string[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function GeneralPolling() {
   // --- localStorage persistence ---
   const GP_POLL_KEY = "gp_poll_cache";
   const GP_VOTES_KEY = "gp_votes_cache";
-  const saveCache = (k: string, d: any) => { try { localStorage.setItem(k, JSON.stringify(d)); } catch {} };
+  const saveCache = (k: string, d: any) => { try { localStorage.setItem(k, JSON.stringify(d)); } catch { } };
   const loadCache = (k: string): any => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } };
 
   const fetchPoll = useCallback(() => {
@@ -70,10 +70,10 @@ export default function GeneralPolling() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ question: cached.question, options: cached.options }),
-          }).catch(() => {});
+          }).catch(() => { });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const fetchVotes = useCallback(() => {
@@ -118,7 +118,7 @@ export default function GeneralPolling() {
     const counts = poll.options.map(opt => ({
       name: opt, count: votes.filter(v => v.choice === opt).length
     })).sort((a, b) => b.count - a.count);
-    
+
     if (counts[0].count === 0) return null;
     if (counts[0].count > counts[1].count) {
       return `${counts[0].name} is in the lead, actively higher than ${counts[1].name} by ${counts[0].count - counts[1].count} vote(s).`;
@@ -149,13 +149,13 @@ export default function GeneralPolling() {
         setLastVote({ email, choice: selectedOption, timestamp: Date.now() });
         setView("receipt");
         setEmail(""); setReason(""); setSelectedOption(""); setStatus(null);
-        
+
         const duration = 3 * 1000;
         const animationEnd = Date.now() + duration;
         const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
         const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-        const interval: any = setInterval(function() {
+        const interval: any = setInterval(function () {
           const timeLeft = animationEnd - Date.now();
           if (timeLeft <= 0) return clearInterval(interval);
           const particleCount = 50 * (timeLeft / duration);
@@ -226,7 +226,7 @@ export default function GeneralPolling() {
       value: votes.filter((v) => v.choice === option).length
     }));
     const maxVotes = Math.max(...counts.map(c => c.value));
-    
+
     return counts.map(c => ({
       ...c,
       color: (c.value === maxVotes && maxVotes > 0) ? "#3b82f6" : "#ffffff40"
@@ -235,12 +235,12 @@ export default function GeneralPolling() {
 
   const timeData = useMemo(() => {
     if (votes.length === 0) return [];
-    const sorted = [...votes].sort((a,b) => a.timestamp - b.timestamp);
+    const sorted = [...votes].sort((a, b) => a.timestamp - b.timestamp);
     let currentCount = 0;
     return sorted.map(v => {
       currentCount++;
       return {
-        time: new Date(v.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}),
+        time: new Date(v.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         votes: currentCount
       };
     });
@@ -277,9 +277,9 @@ export default function GeneralPolling() {
                   <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, duration: 0.8 }}>
                     <VoteIcon size={64} strokeWidth={1} className="text-white" />
                   </motion.div>
-                  <motion.div 
+                  <motion.div
                     animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-0 border-2 border-dashed border-white/5 rounded-[2.5rem]" 
+                    className="absolute inset-0 border-2 border-dashed border-white/5 rounded-[2.5rem]"
                   />
                 </div>
                 <div className="text-center space-y-4">
@@ -289,7 +289,7 @@ export default function GeneralPolling() {
                   </motion.div>
                 </div>
               </motion.div>
-              <motion.div 
+              <motion.div
                 initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ delay: 1, duration: 1.2, ease: "easeInOut" }}
                 className="absolute -bottom-24 left-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"
               />
@@ -305,7 +305,7 @@ export default function GeneralPolling() {
       </div>
 
       {/* Modern Top Nav */}
-      <motion.nav 
+      <motion.nav
         initial={{ y: -100 }} animate={{ y: 0 }} transition={{ type: "spring", stiffness: 100, damping: 20 }}
         className="fixed top-0 w-full bg-zinc-950/40 backdrop-blur-2xl border-b border-white/5 z-50"
       >
@@ -316,15 +316,24 @@ export default function GeneralPolling() {
             </div>
             <span className="font-extrabold text-xl tracking-tight leading-none">QuickPoll</span>
           </div>
-          
+
           <div className="flex items-center gap-8">
             <button onClick={() => { setView("voter"); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
               Vote
             </button>
-            <button onClick={() => { setView("insights"); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
-              Results
-            </button>
-            {isAdminAuthenticated && view === "admin" ? (
+            
+            {isAdminAuthenticated && (
+              <>
+                <button onClick={() => { setView("insights"); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
+                  Results
+                </button>
+                <button onClick={() => { setView("admin"); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
+                  Setup
+                </button>
+              </>
+            )}
+
+            {isAdminAuthenticated ? (
               <button onClick={() => { setView("voter"); setIsAdminAuthenticated(false); setStatus(null); }} className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors flex items-center gap-2 group">
                 <LogOut size={12} className="group-hover:scale-110 transition-transform" /> Sign out
               </button>
@@ -339,7 +348,7 @@ export default function GeneralPolling() {
 
       <main className="relative z-10 pt-32 pb-40 px-6 max-w-5xl mx-auto min-h-screen flex items-center justify-center">
         <AnimatePresence mode="wait">
-          
+
           {view === "voter" && (
             <motion.div key="voter" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.4 }} className="w-full max-w-2xl mx-auto">
               <div className="text-center space-y-4 mb-12">
@@ -392,14 +401,14 @@ export default function GeneralPolling() {
 
           {view === "receipt" && lastVote && (
             <motion.div key="receipt" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto text-center w-full">
-               <div className="w-24 h-24 bg-blue-500 text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-blue-500/30"><CheckCircle2 size={40} /></div>
-               <h2 className="text-4xl font-black tracking-tighter mb-2">Response Saved!</h2>
-               <p className="text-white/60 uppercase tracking-widest font-bold text-sm mb-12">Thanks for voting!</p>
-               <div className="bg-white/5 border border-white/10 rounded-[2rem] p-10 text-left space-y-8">
-                 <div className="border-b border-white/10 pb-6"><span className="text-[9px] font-bold uppercase tracking-widest text-white/40 block mb-2">Participant</span><p className="font-mono text-lg">{lastVote.email}</p></div>
-                 <div><span className="text-[9px] font-bold uppercase tracking-widest text-white/40 block mb-2">Selection</span><div className="p-6 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-2xl font-black text-blue-400">{lastVote.choice}</div></div>
-                 <button onClick={() => { setView("voter"); setLastVote(null); }} className="w-full py-4 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-[0.3em] mt-8 hover:bg-white/90">Return</button>
-               </div>
+              <div className="w-24 h-24 bg-blue-500 text-white rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-blue-500/30"><CheckCircle2 size={40} /></div>
+              <h2 className="text-4xl font-black tracking-tighter mb-2">Response Saved!</h2>
+              <p className="text-white/60 uppercase tracking-widest font-bold text-sm mb-12">Thanks for voting!</p>
+              <div className="bg-white/5 border border-white/10 rounded-[2rem] p-10 text-left space-y-8">
+                <div className="border-b border-white/10 pb-6"><span className="text-[9px] font-bold uppercase tracking-widest text-white/40 block mb-2">Participant</span><p className="font-mono text-lg">{lastVote.email}</p></div>
+                <div><span className="text-[9px] font-bold uppercase tracking-widest text-white/40 block mb-2">Selection</span><div className="p-6 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-2xl font-black text-blue-400">{lastVote.choice}</div></div>
+                <button onClick={() => { setView("voter"); setLastVote(null); }} className="w-full py-4 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-[0.3em] mt-8 hover:bg-white/90">Return</button>
+              </div>
             </motion.div>
           )}
 
@@ -418,34 +427,34 @@ export default function GeneralPolling() {
             </motion.div>
           )}
 
-          {view === "insights" && (
-            <motion.div key="insights" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="w-full max-w-5xl space-y-12">
+          {view === "insights" && isAdminAuthenticated && (
+            <motion.div key="insights" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full max-w-5xl space-y-12">
               <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8">
-                 <div>
-                   <span className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4">Live Results</span>
-                   <h1 className="text-5xl font-black tracking-tighter leading-tight">{poll.question}</h1>
-                 </div>
-                 <div className="text-right">
-                   <div className="text-6xl font-black font-mono">{votes.length}</div>
-                   <div className="text-[10px] uppercase font-bold text-white/40 tracking-widest">Total Responses</div>
-                 </div>
+                <div>
+                  <span className="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4">Live Results</span>
+                  <h1 className="text-5xl font-black tracking-tighter leading-tight">{poll.question}</h1>
+                </div>
+                <div className="text-right">
+                  <div className="text-6xl font-black font-mono">{votes.length}</div>
+                  <div className="text-[10px] uppercase font-bold text-white/40 tracking-widest">Total Responses</div>
+                </div>
               </div>
 
               {leader && (
                 <div className="bg-gradient-to-r from-blue-500/10 to-transparent border border-blue-500/20 rounded-3xl p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                   <div className="flex items-center gap-6">
-                     <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center shrink-0"><TrendingUp size={32} /></div>
-                     <div>
-                       <div className="text-[10px] font-black uppercase tracking-widest text-blue-400/60 mb-1">Top Choice</div>
-                       <div className="text-3xl font-black text-white">{leader.name} <span className="text-blue-400 text-lg ml-2">({leader.count} votes)</span></div>
-                     </div>
-                   </div>
-                   {advancedInsight && (
-                     <div className="text-left md:text-right p-4 bg-white/5 border border-white/5 rounded-2xl max-w-sm">
-                       <span className="text-[9px] uppercase tracking-widest text-blue-400/60 font-black block mb-2 text-left md:text-right">Comparative Insight</span>
-                       <p className="text-sm font-medium text-blue-100/80 leading-relaxed text-left md:text-right">{advancedInsight}</p>
-                     </div>
-                   )}
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center shrink-0"><TrendingUp size={32} /></div>
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-blue-400/60 mb-1">Top Choice</div>
+                      <div className="text-3xl font-black text-white">{leader.name} <span className="text-blue-400 text-lg ml-2">({leader.count} votes)</span></div>
+                    </div>
+                  </div>
+                  {advancedInsight && (
+                    <div className="text-left md:text-right p-4 bg-white/5 border border-white/5 rounded-2xl max-w-sm">
+                      <span className="text-[9px] uppercase tracking-widest text-blue-400/60 font-black block mb-2 text-left md:text-right">Comparative Insight</span>
+                      <p className="text-sm font-medium text-blue-100/80 leading-relaxed text-left md:text-right">{advancedInsight}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -491,8 +500,8 @@ export default function GeneralPolling() {
                     <AreaChart data={timeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorGeneralVotes" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -531,36 +540,36 @@ export default function GeneralPolling() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="bg-white/5 border border-white/10 rounded-[2rem] p-10 space-y-8">
-                   <h3 className="font-bold text-xs uppercase tracking-widest mb-6">Edit Poll</h3>
-                   
-                   <div className="space-y-4">
-                     <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Question</label>
-                     <input value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 outline-none focus:border-blue-400 transition-colors text-lg" />
-                   </div>
+                  <h3 className="font-bold text-xs uppercase tracking-widest mb-6">Edit Poll</h3>
 
-                   <div className="space-y-4">
-                     <div className="flex justify-between items-center">
-                       <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Options</label>
-                       <button onClick={() => setNewOptions([...newOptions, ""])} className="text-[10px] font-bold uppercase text-blue-400 hover:text-blue-300 flex items-center gap-2"><Plus size={12}/>Add</button>
-                     </div>
-                     <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                       {newOptions.map((opt, idx) => (
-                         <div key={idx} className="flex gap-3 items-center">
-                           <input value={opt} onChange={(e) => { const u = [...newOptions]; u[idx] = e.target.value; setNewOptions(u); }} placeholder={`Option ${idx + 1}`} className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-400 text-sm" />
-                           <button onClick={() => setNewOptions(newOptions.filter((_, i) => i !== idx))} className="text-white/20 hover:text-red-500 p-2"><Trash2 size={16}/></button>
-                         </div>
-                       ))}
-                     </div>
-                   </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Question</label>
+                    <input value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-5 py-4 outline-none focus:border-blue-400 transition-colors text-lg" />
+                  </div>
 
-                   <button onClick={updatePoll} className="w-full py-5 bg-white text-black rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-white/90">Save Configuration</button>
-                   {status && <div className={cn("text-[10px] font-bold uppercase tracking-widest text-center", status.type === "success" ? "text-emerald-400" : "text-red-400")}>{status.message}</div>}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">Options</label>
+                      <button onClick={() => setNewOptions([...newOptions, ""])} className="text-[10px] font-bold uppercase text-blue-400 hover:text-blue-300 flex items-center gap-2"><Plus size={12} />Add</button>
+                    </div>
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                      {newOptions.map((opt, idx) => (
+                        <div key={idx} className="flex gap-3 items-center">
+                          <input value={opt} onChange={(e) => { const u = [...newOptions]; u[idx] = e.target.value; setNewOptions(u); }} placeholder={`Option ${idx + 1}`} className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-blue-400 text-sm" />
+                          <button onClick={() => setNewOptions(newOptions.filter((_, i) => i !== idx))} className="text-white/20 hover:text-red-500 p-2"><Trash2 size={16} /></button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button onClick={updatePoll} className="w-full py-5 bg-white text-black rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-white/90">Save Configuration</button>
+                  {status && <div className={cn("text-[10px] font-bold uppercase tracking-widest text-center", status.type === "success" ? "text-emerald-400" : "text-red-400")}>{status.message}</div>}
                 </div>
 
                 <div className="bg-white/5 border border-white/10 rounded-[2rem] p-10 flex flex-col">
-                   <h3 className="font-bold text-xs uppercase tracking-widest mb-6">Recent Responses</h3>
-                   <div className="flex-1 overflow-y-auto max-h-[500px] space-y-3">
-                     {votes.length === 0 ? <p className="text-white/30 text-center text-xs uppercase tracking-widest mt-10">No votes recorded yet.</p> : 
+                  <h3 className="font-bold text-xs uppercase tracking-widest mb-6">Recent Responses</h3>
+                  <div className="flex-1 overflow-y-auto max-h-[500px] space-y-3">
+                    {votes.length === 0 ? <p className="text-white/30 text-center text-xs uppercase tracking-widest mt-10">No votes recorded yet.</p> :
                       votes.slice().reverse().map((v, i) => (
                         <div key={i} className="p-4 bg-black/30 border border-white/5 rounded-xl text-sm">
                           <div className="flex justify-between items-center mb-2">
@@ -570,8 +579,8 @@ export default function GeneralPolling() {
                           <div className="text-blue-400 font-medium">{v.choice}</div>
                         </div>
                       ))
-                     }
-                   </div>
+                    }
+                  </div>
                 </div>
               </div>
             </motion.div>
