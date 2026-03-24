@@ -49,9 +49,9 @@ export default function App() {
       </div>
 
       <div className="w-full h-full min-h-screen">
-        {activeApp === "general" && <GeneralPolling />}
-        {activeApp === "candidate" && <CandidatePoll />}
-        {activeApp === "state" && <StateElection />}
+        <div style={{ display: activeApp === "general" ? "block" : "none" }}><GeneralPolling /></div>
+        <div style={{ display: activeApp === "candidate" ? "block" : "none" }}><CandidatePoll /></div>
+        <div style={{ display: activeApp === "state" ? "block" : "none" }}><StateElection /></div>
       </div>
     </>
   );
