@@ -34,9 +34,11 @@ TN_DISTRICTS.forEach(d => {
   districts[d] = { candidates: [] };
 });
 
+export const app = express();
+
 async function startServer() {
-  const app = express();
   const PORT = Number(process.env.PORT) || 3000;
+
 
   app.use(express.json());
 
@@ -208,4 +210,9 @@ async function startServer() {
   });
 }
 
-startServer();
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
+
